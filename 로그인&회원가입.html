@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>로그인/회원가입</title>
+  <h1>전공기초아카데미</h1>
+  <style>
+  body {
+  font-family: sans-serif;
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  justify-content: center;  /* 가로 중앙 정렬 */
+  align-items: center;      /* 세로 중앙 정렬 */
+  flex-direction: column;   /* 요소 수직 정렬 */
+  background-color: #f5f5f5;
+}
+h1 {
+  font-size: 100px;
+  margin-bottom: 0;
+}
+h2 {
+  font-size: 32px; /* 글씨 크게 */
+  margin-bottom: 10px;
+  margin-top: 10px;
+  text-align: center;
+}
+
+input,
+button,
+small {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+input {
+  margin: 5px 0;
+  padding: 10px;
+  width: 300px;
+  font-size: 16px;
+}
+
+button {
+  padding: 5px 20px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+#register-form {
+  display: none; /* 처음에 숨기기 */
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+#password-help.red {
+  color: red;
+}
+</style>
+</head>
+
+<body>
+  <h2>로그인</h2>
+  <input type="email" id="login-email" placeholder="이메일"><br>
+  <input type="password" id="login-password" placeholder="비밀번호"><br>
+  <button onclick="login()">로그인</button><br>
+  <button onclick="showRegisterForm()">회원가입하기/닫기</button>
+
+  <div id="register-form" class="hidden">
+    <h2>회원가입</h2>
+    <input type="text" id="register-name" placeholder="이름"><br>
+    <input type="date" id="register-birth" placeholder="생년월일"><br>
+    <input type="email" id="register-email" placeholder="이메일" required><br>
+    <small style="color: gray;">※ <strong>hanyang-u.hs.kr</strong> 학교  이메일만 사용 가능합니다.</small><br>
+    <input type="password" id="register-password" placeholder="비밀번호" required><br>
+<small id="password-help" style="color: gray; font-size: 12px;">
+  ※ 비밀번호는 <strong>8자 이상</strong>이어야 하며, 영문자, 숫자 등을 포함하는 것이 좋습니다.
+</small><br>
+    <button onclick="register()">회원가입</button>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getAuth,
+      createUserWithEmailAndPassword,
+      signInWithEmailAndPassword
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    import {
+      getFirestore,
+      doc,
+      setDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    // Firebase 설정
+    const firebaseConfig = {
+      apiKey: "AIzaSyAZFX0DMGtAEkLV2WR5Th1S8I1kS_GXuqI",
+      authDomain: "logintest-c4e56.firebaseapp.com",
+      projectId: "logintest-c4e56",
+      storageBucket: "logintest-c4e56.firebasestorage.app",
+      messagingSenderId: "964833838612",
+      appId: "1:964833838612:web:ccffccf600f2f8d6e70901",
+      measurementId: "G-4L1LQY4Q0G"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // 로그인
+    window.login = async function () {
+      const email = document.getElementById("login-email").value;
+      const password = document.getElementById("login-password").value;
+
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        alert("로그인 성공: " + userCredential.user.email);
+      } catch (error) {
+        alert("로그인 실패: " + error.message);
+      }
+    };
+
+// 회원가입
+window.register = async function () {
+  const name = document.getElementById("register-name").value;
+  const birth = document.getElementById("register-birth").value;
+  const email = document.getElementById("register-email").value;
+  const password = document.getElementById("register-password").value;
+  const passwordHelp = document.getElementById("password-help"); // ⬅️ 안내 문구 span 가져오기
+
+  const allowedDomain = "@hanyang-u.hs.kr"; // ✅ 원하는 도메인으로 수정하세요
+
+  // 이메일 도메인 검사
+  if (!email.endsWith(allowedDomain)) {
+    alert(`❌ '${allowedDomain}' 이메일만 가입할 수 있습니다.`);
+    return;
+  }
+
+  // ✅ 비밀번호 길이 검사 (8자 이상)
+  if (password.length < 8) {
+    passwordHelp.style.color = "red";
+    passwordHelp.innerText = "❌ 비밀번호는 최소 8자 이상이어야 합니다.";
+    return;
+  } else {
+    passwordHelp.style.color = "gray";
+    passwordHelp.innerText = "※ 비밀번호는 8자 이상이어야 하며, 영문자, 숫자 등을 포함하는 것이 좋습니다.";
+  }
+
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const uid = userCredential.user.uid;
+
+    await setDoc(doc(db, "users", uid), {
+      name: name,
+      birth: birth,
+      email: email,
+      createdAt: new Date().toISOString()
+    });
+
+    alert("✅ 회원가입 성공!");
+    document.getElementById("register-form").classList.add("hidden");
+  } catch (error) {
+    if (error.code === "auth/email-already-in-use") {
+      alert("❌ 이미 가입된 이메일입니다.");
+    } else if (error.code === "auth/invalid-email") {
+      alert("❌ 유효하지 않은 이메일 형식입니다.");
+    } else {
+      alert("❌ 회원가입 실패: " + error.message);
+    }
+  }
+};
+
+
+
+window.showRegisterForm = function () {
+  const form = document.getElementById("register-form");
+  form.style.display = form.style.display === "none" ? "flex" : "none";
+};
+  </script>
+</body>
+</html>
