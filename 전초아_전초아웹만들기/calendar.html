@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>일정</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Apple SD Gothic Neo', sans-serif;
+      color: #000000;
+    }
+
+    body {
+      background-color: #f5f6f7;
+    }
+
+    header {
+      background-color: #ccd3ff;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header h1 {
+      font-size: 22px;
+    }
+
+    nav a {
+      color: #000000;
+      margin-left: 15px;
+      text-decoration: none;
+      font-size: 15px;
+    }
+
+    nav a:hover {
+      text-decoration: underline;
+    }
+
+    .container {
+      padding: 30px 20px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .section {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+
+    .section h2 {
+      font-size: 18px;
+      margin-bottom: 15px;
+      border-left: 4px solid #ccd3ff;
+      padding-left: 10px;
+    }
+
+    #calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    #calendar-header button {
+      background-color: #ccd3ff;
+      color: #000;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    #monthYear {
+      font-size: 18px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      border: 1px solid #ddd;
+      width: 14.28%;
+      height: 120px;
+      vertical-align: top;
+      padding: 5px;
+      font-size: 14px;
+      position: relative;
+      cursor: pointer;
+    }
+
+    th {
+      background-color: #e5eaff;
+    }
+
+    td.today {
+      background-color: #fffbe7;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      color: #000000;
+      font-size: 13px;
+    }
+
+    /* 모달 스타일 */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 20px;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal textarea {
+      width: 100%;
+      height: 100px;
+      resize: none;
+      padding: 10px;
+      font-size: 16px;
+    }
+
+    .modal-buttons {
+      margin-top: 10px;
+      text-align: right;
+    }
+
+    .modal-buttons button {
+      margin-left: 5px;
+      padding: 8px 12px;
+      background-color: #ccd3ff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.3);
+      z-index: 500;
+    }
+
+    .memo {
+      margin-top: 5px;
+      font-size: 15px;
+      color: #333;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+
+<body onload="initCalendar()">
+  <header>
+    <h1>이번 달 일정</h1>
+    <nav>
+      <a href="home.html">홈</a>
+      <a href="schedule.html">스케줄 신청</a>
+      <a href="notices.html">공지사항</a>
+      <a href="mypage.html">마이페이지</a>
+    </nav>
+  </header>
+
+  <div class="container">
+    <div class="section">
+      <div id="calendar-header">
+        <button onclick="prevMonth()">◀ 이전달</button>
+        <h2 id="monthYear"></h2>
+        <button onclick="nextMonth()">다음달 ▶</button>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>일</th>
+            <th>월</th>
+            <th>화</th>
+            <th>수</th>
+            <th>목</th>
+            <th>금</th>
+            <th>토</th>
+          </tr>
+        </thead>
+        <tbody id="calendar-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="footer">
+    © 한양대학교사범대학부속고등학교
+  </div>
+
+  <!-- 입력창 모달 -->
+  <div class="overlay" id="overlay"></div>
+  <div class="modal" id="memoModal">
+    <h3 id="modalDate"></h3>
+    <textarea id="memoInput" placeholder="내용을 입력하세요..."></textarea>
+    <div class="modal-buttons">
+      <button onclick="saveMemo()">저장</button>
+      <button onclick="clearMemo()">모두 삭제</button>
+      <button onclick="closeModal()">닫기</button>
+    </div>
+  </div>
+
+  <script>
+    const user = JSON.parse(localStorage.getItem('loggedInUser'));
+    if (!user) {
+      alert("로그인이 필요합니다.");
+      location.href = "index.html";
+    }
+
+    let currentYear, currentMonth;
+    const today = new Date();
+    let selectedDate = "";
+
+    function initCalendar() {
+      currentYear = today.getFullYear();
+      currentMonth = today.getMonth();
+      renderCalendar();
+    }
+
+    function renderCalendar() {
+      const body = document.getElementById('calendar-body');
+      const header = document.getElementById('monthYear');
+      body.innerHTML = '';
+      header.textContent = `${currentYear}년 ${currentMonth + 1}월`;
+
+      const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+      const lastDate = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+      let row = document.createElement('tr');
+      for (let i = 0; i < firstDay; i++) {
+        row.appendChild(document.createElement('td'));
+      }
+
+      for (let d = 1; d <= lastDate; d++) {
+        const td = document.createElement('td');
+        td.textContent = d;
+
+        const dateKey = `${currentYear}-${currentMonth + 1}-${d}`;
+        const memo = localStorage.getItem(dateKey);
+        if (memo) {
+          const memoDiv = document.createElement('div');
+          memoDiv.className = 'memo';
+          memoDiv.textContent = memo;
+          td.appendChild(memoDiv);
+        }
+
+        if (
+          currentYear === today.getFullYear() &&
+          currentMonth === today.getMonth() &&
+          d === today.getDate()
+        ) {
+          td.classList.add('today');
+        }
+
+        td.addEventListener('click', () => openModal(dateKey));
+
+        row.appendChild(td);
+        if ((firstDay + d) % 7 === 0 || d === lastDate) {
+          body.appendChild(row);
+          row = document.createElement('tr');
+        }
+      }
+    }
+
+    function openModal(dateKey) {
+      selectedDate = dateKey;
+      document.getElementById('modalDate').textContent = dateKey;
+      document.getElementById('memoInput').value = localStorage.getItem(dateKey) || '';
+      document.getElementById('memoModal').style.display = 'block';
+      document.getElementById('overlay').style.display = 'block';
+    }
+
+    function closeModal() {
+      document.getElementById('memoModal').style.display = 'none';
+      document.getElementById('overlay').style.display = 'none';
+    }
+
+    function saveMemo() {
+      const text = document.getElementById('memoInput').value.trim();
+      if (text) {
+        localStorage.setItem(selectedDate, text);
+      } else {
+        localStorage.removeItem(selectedDate);
+      }
+      closeModal();
+      renderCalendar();
+    }
+
+    function clearMemo() {
+      localStorage.removeItem(selectedDate);
+      document.getElementById('memoInput').value = '';
+      renderCalendar();
+    }
+
+    document.getElementById('memoInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        saveMemo();
+      }
+    });
+
+    function prevMonth() {
+      currentMonth--;
+      if (currentMonth < 0) {
+        currentMonth = 11;
+        currentYear--;
+      }
+      renderCalendar();
+    }
+
+    function nextMonth() {
+      currentMonth++;
+      if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+      }
+      renderCalendar();
+    }
+  </script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAZFX0DMGtAEkLV2WR5Th1S8I1kS_GXuqI",
+      authDomain: "logintest-c4e56.firebaseapp.com",
+      projectId: "logintest-c4e56",
+      storageBucket: "logintest-c4e56.firebasestorage.app",
+      messagingSenderId: "964833838612",
+      appId: "1:964833838612:web:ccffccf600f2f8d6e70901"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    // 로그인 상태 확인 시 일정 불러오기
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const uid = user.uid;
+        const schedule = await loadSchedule(uid);
+        console.log("불러온 일정:", schedule);
+        // → 달력 렌더링 함수 호출 예시
+        // renderCalendar(schedule);
+      } else {
+        console.log("로그인하지 않음");
+      }
+    });
+
+    // 일정 저장 함수
+    async function saveSchedule(uid, scheduleData) {
+      try {
+        await setDoc(doc(db, "schedules", uid), scheduleData);
+        console.log("일정 저장 성공");
+      } catch (err) {
+        console.error("일정 저장 실패:", err);
+      }
+    }
+
+    // 일정 불러오기 함수
+    async function loadSchedule(uid) {
+      try {
+        const snap = await getDoc(doc(db, "schedules", uid));
+        if (snap.exists()) {
+          return snap.data(); // 객체 반환
+        } else {
+          return {}; // 아무 일정도 없을 경우 빈 객체
+        }
+      } catch (err) {
+        console.error("일정 불러오기 실패:", err);
+        return {};
+      }
+    }
+  </script>
+
+</body>
+
+</html>

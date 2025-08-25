@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>홈 | 전공기초아카데미 </title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Apple SD Gothic Neo', sans-serif;
+      color: #000000;
+    }
+
+    body {
+      background-color: #f5f6f7;
+    }
+
+    header {
+      background-color: #ccd3ff;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header h1 {
+      font-size: 22px;
+    }
+
+    nav a {
+      color: #000000;
+      margin-left: 15px;
+      text-decoration: none;
+      font-size: 15px;
+    }
+
+    nav a:hover {
+      text-decoration: underline;
+    }
+
+    .container {
+      padding: 30px 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .section {
+      background: white;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+
+    .section h2 {
+      font-size: 18px;
+      margin-bottom: 15px;
+      border-left: 4px solid #ccd3ff;
+      padding-left: 10px;
+    }
+
+    .notice-item {
+      padding: 6px 0;
+      border-bottom: 1px solid #eee;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .notice-item:last-child {
+      border-bottom: none;
+    }
+
+    .notice-item:hover {
+      background-color: #f2f4ff;
+    }
+
+    .btn {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 8px 16px;
+      background-color: #ccd3ff;
+      color: #000000;
+      text-decoration: none;
+      border-radius: 5px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .btn:hover {
+      background-color: #a9b6f0;
+    }
+
+    .calendar-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    .calendar-table th,
+    .calendar-table td {
+      border: 1px solid #ddd;
+      text-align: center;
+      padding: 8px;
+      width: 14.28%;
+      font-size: 13px;
+    }
+
+    .calendar-table th {
+      background-color: #e5eaff;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 20px;
+      font-size: 13px;
+      color: #000000;
+    }
+
+    .today {
+      background-color: #a2afe8 !important;
+      font-weight: bold;
+      border: 2px solid #ccd3ff;
+    }
+
+    .logout-btn {
+      background: none;
+      border: none;
+      font-size: 15px;
+      margin-left: 20px;
+      cursor: pointer;
+      color: #000000;
+    }
+
+    .logout-btn:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+
+<body onload="renderCalendar()">
+
+  <!-- 상단 -->
+  <header>
+    <h1>전공기초아카데미</h1>
+    <div style="display: flex; align-items: center;">
+      <button class="logout-btn" onclick="logout()">로그아웃</button>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- 달력 -->
+    <div class="section">
+      <h2>📅 이번 달 일정</h2>
+      <div id="calendarHeader"></div>
+      <table class="calendar-table">
+        <thead>
+          <tr>
+            <th>일</th>
+            <th>월</th>
+            <th>화</th>
+            <th>수</th>
+            <th>목</th>
+            <th>금</th>
+            <th>토</th>
+          </tr>
+        </thead>
+        <tbody id="calendarBody"></tbody>
+      </table>
+      <a href="calendar.html" class="btn">이번 달 일정 보기</a>
+    </div>
+
+    <!-- 공지사항 -->
+    <div class="section">
+      <h2>📢 공지사항</h2>
+      <div id="noticeList">
+        <div class="notice-item" onclick="location.href='notices.html'">📌 test </div>
+        <div class="notice-item" onclick="location.href='notices.html'">📌 test </div>
+        <div class="notice-item" onclick="location.href='notices.html'">📌 test </div>
+      </div>
+      <a href="notices.html" class="btn">전체 공지 보기</a>
+    </div>
+
+    <!-- 내 스케줄 -->
+    <div class="section">
+      <h2>📅 내 스케줄</h2>
+      <p>신청한 스케줄을 확인하고 수정할 수 있어요.</p>
+      <a href="schedule.html" class="btn">스케줄 신청하기</a>
+    </div>
+
+    <!-- 내 정보 -->
+    <div class="section">
+      <h2>👤 내 정보</h2>
+      <p>이름: <strong id="userName">김윤지</strong></p>
+      <p>이메일: <strong id="userEmail">yoonji@example.com</strong></p>
+      <a href="mypage.html" class="btn">마이페이지로 이동</a>
+    </div>
+  </div>
+
+  <div class="footer">
+    © 한양대학교사범대학부속고등학교
+  </div>
+
+  <!-- 캘린더 렌더링 -->
+  <script>
+    const user = JSON.parse(localStorage.getItem('loggedInUser'));
+    if (user) {
+      document.getElementById('userName').textContent = user.name;
+      document.getElementById('userEmail').textContent = user.email;
+    } else {
+      alert("로그인이 필요합니다.");
+      location.href = "index.html";
+    }
+
+    function renderCalendar() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth();
+      const today = now.getDate();
+
+      const firstDay = new Date(year, month, 1).getDay();
+      const lastDate = new Date(year, month + 1, 0).getDate();
+
+      document.getElementById('calendarHeader').textContent = `${year}년 ${month + 1}월`;
+
+      const body = document.getElementById('calendarBody');
+      body.innerHTML = '';
+
+      let row = document.createElement('tr');
+      for (let i = 0; i < firstDay; i++) {
+        row.appendChild(document.createElement('td'));
+      }
+
+      for (let d = 1; d <= lastDate; d++) {
+        const cell = document.createElement('td');
+        cell.textContent = d;
+
+        if (
+          year === now.getFullYear() &&
+          month === now.getMonth() &&
+          d === today
+        ) {
+          cell.classList.add('today');
+        }
+
+        row.appendChild(cell);
+
+        if ((firstDay + d) % 7 === 0 || d === lastDate) {
+          body.appendChild(row);
+          row = document.createElement('tr');
+        }
+      }
+    }
+  </script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAZFX0DMGtAEkLV2WR5Th1S8I1kS_GXuqI",
+      authDomain: "logintest-c4e56.firebaseapp.com",
+      projectId: "logintest-c4e56",
+      appId: "1:964833838612:web:ccffccf600f2f8d6e70901"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    window.logout = function () {
+      signOut(auth)
+        .then(() => {
+          localStorage.removeItem("loggedInUser");
+          alert("로그아웃 되었습니다.");
+          location.href = "index.html";
+        })
+        .catch((error) => {
+          console.error("로그아웃 실패:", error);
+          alert("로그아웃 중 오류 발생");
+        });
+    };
+  </script>
+
+
+</body>
+
+</html>

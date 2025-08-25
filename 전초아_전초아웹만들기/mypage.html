@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>내 정보</title>
+  <style>
+    body {
+      font-family: 'Apple SD Gothic Neo', sans-serif;
+      background-color: #f5f6f7;
+      margin: 0;
+      padding: 40px;
+    }
+
+    .info-card {
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      max-width: 400px;
+      margin: 0 auto;
+      padding: 30px;
+      text-align: center;
+    }
+
+    .info-card h3 {
+      color: #4c3b96;
+      font-size: 22px;
+      margin-bottom: 20px;
+    }
+
+    .info-card p {
+      font-size: 16px;
+      margin: 8px 0;
+    }
+
+    .info-card button {
+      margin-top: 20px;
+      background-color: #ccd3ff;
+      color: #000;
+      border: none;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="info-card">
+    <h3>👤 내 정보</h3>
+    <p id="userNameField">이름: (불러오는 중...)</p>
+    <p id="userEmailField">이메일: (불러오는 중...)</p>
+    <button onclick="location.href='mypage.html'">마이페이지로 이동</button>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAZFX0DMGtAEkLV2WR5Th1S8I1kS_GXuqI",
+      authDomain: "logintest-c4e56.firebaseapp.com",
+      projectId: "logintest-c4e56",
+      storageBucket: "logintest-c4e56.firebasestorage.app",
+      messagingSenderId: "964833838612",
+      appId: "1:964833838612:web:ccffccf600f2f8d6e70901",
+      measurementId: "G-4L1LQY4Q0G"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // 로그인된 사용자의 Firestore 이름/이메일 불러오기
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        alert("로그인이 필요합니다.");
+        location.href = "index.html";
+        return;
+      }
+
+      const uid = user.uid;
+      const docRef = doc(db, "users", uid);
+      const docSnap = await getDoc(docRef);
+      onAuthStateChanged(auth, async (user) => {
+        console.log("현재 로그인한 UID:", user.uid);
+      });
+
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        document.getElementById("userNameField").textContent = `이름: ${data.name || "(이름 없음)"}`;
+        document.getElementById("userEmailField").textContent = `이메일: ${data.email || user.email}`;
+      } else {
+        document.getElementById("userNameField").textContent = "이름: (정보 없음)";
+        document.getElementById("userEmailField").textContent = `이메일: ${user.email}`;
+      }
+    });
+  </script>
+</body>
+
+</html>

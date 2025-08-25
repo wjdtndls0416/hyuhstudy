@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>로그인 / 회원가입</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Noto Sans KR', sans-serif;
+      color: #000000;
+    }
+
+    body {
+      margin: 0;
+      background-color: #f5f6f7;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding-top: 40px;
+      min-height: 100vh;
+    }
+
+    h1 {
+      font-size: 36px;
+      margin-bottom: 10px;
+      color: #000;
+    }
+
+    h2 {
+      font-size: 24px;
+      margin: 20px 0 10px;
+    }
+
+    .form-box {
+      background: #fff;
+      padding: 30px 40px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 400px;
+      margin-bottom: 30px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 8px;
+      font-size: 16px;
+      background-color: #ccd3ff;
+      color: #000000;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    button:hover {
+      background-color: #b1bbf7;
+    }
+
+    small {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 12px;
+      color: gray;
+      text-align: center;
+    }
+
+    /* 회원가입 폼 초기에는 숨김 */
+    #register-form {
+      display: none;
+    }
+
+    #password-help.red {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <h1>전공기초아카데미</h1>
+
+  <!-- 로그인 폼 -->
+  <div class="form-box">
+    <h2>로그인</h2>
+    <input type="email" id="login-email" placeholder="이메일" />
+    <input type="password" id="login-password" placeholder="비밀번호" />
+    <button onclick="login()">로그인</button>
+    <button onclick="showRegisterForm()">회원가입하기 / 닫기</button>
+  </div>
+
+  <!-- 회원가입 폼 -->
+  <div class="form-box" id="register-form">
+    <h2>회원가입</h2>
+    <input type="text" id="register-name" placeholder="이름" />
+    <input type="date" id="register-birth" placeholder="생년월일" />
+    <input type="email" id="register-email" placeholder="이메일" required />
+    <small>※ <strong>hanyang-u.hs.kr</strong> 이메일만 사용 가능합니다.</small>
+    <input type="password" id="register-password" placeholder="비밀번호" required />
+    <small id="password-help">
+      ※ 비밀번호는 <strong>8자 이상</strong>이어야 하며, 영문자, 숫자 등을 포함하는 것이 좋습니다.
+    </small>
+    <button onclick="register()">회원가입</button>
+  </div>
+
+  <!-- Firebase 인증 및 Firestore 연동 -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getAuth,
+      createUserWithEmailAndPassword,
+      signInWithEmailAndPassword
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    import {
+      getFirestore,
+      doc,
+      setDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAZFX0DMGtAEkLV2WR5Th1S8I1kS_GXuqI",
+      authDomain: "logintest-c4e56.firebaseapp.com",
+      projectId: "logintest-c4e56",
+      storageBucket: "logintest-c4e56.appspot.com",
+      messagingSenderId: "964833838612",
+      appId: "1:964833838612:web:ccffccf600f2f8d6e70901",
+      measurementId: "G-4L1LQY4Q0G"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // 로그인 처리
+    window.login = async function () {
+      const email = document.getElementById("login-email").value;
+      const password = document.getElementById("login-password").value;
+
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        alert("로그인 성공: " + userCredential.user.email);
+        localStorage.setItem("loggedInUser", JSON.stringify({
+          email: userCredential.user.email,
+          id: userCredential.user.uid
+        }));
+        location.href = "home.html";
+      } catch (error) {
+        alert("로그인 실패: " + error.message);
+      }
+    };
+
+    // 회원가입 처리
+    window.register = async function () {
+      const name = document.getElementById("register-name").value;
+      const birth = document.getElementById("register-birth").value;
+      const email = document.getElementById("register-email").value;
+      const password = document.getElementById("register-password").value;
+      const passwordHelp = document.getElementById("password-help");
+
+      const allowedDomain = "@hanyang-u.hs.kr";
+
+      if (!email.endsWith(allowedDomain)) {
+        alert(`❌ '${allowedDomain}' 이메일만 가입할 수 있습니다.`);
+        return;
+      }
+
+      if (password.length < 8) {
+        passwordHelp.classList.add("red");
+        passwordHelp.innerText = "❌ 비밀번호는 최소 8자 이상이어야 합니다.";
+        return;
+      } else {
+        passwordHelp.classList.remove("red");
+        passwordHelp.innerText = "※ 비밀번호는 8자 이상이어야 하며, 영문자, 숫자 등을 포함하는 것이 좋습니다.";
+      }
+
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const uid = userCredential.user.uid;
+
+        await setDoc(doc(db, "users", uid), {
+          name,
+          birth,
+          email,
+          createdAt: new Date().toISOString()
+        });
+
+        alert("✅ 회원가입 성공!");
+        document.getElementById("register-form").style.display = "none";
+      } catch (error) {
+        if (error.code === "auth/email-already-in-use") {
+          alert("❌ 이미 가입된 이메일입니다.");
+        } else if (error.code === "auth/invalid-email") {
+          alert("❌ 유효하지 않은 이메일 형식입니다.");
+        } else {
+          alert("❌ 회원가입 실패: " + error.message);
+        }
+      }
+    };
+
+    // 회원가입 폼 열기 / 닫기
+    window.showRegisterForm = function () {
+      const form = document.getElementById("register-form");
+      form.style.display = form.style.display === "none" ? "block" : "none";
+    };
+  </script>
+</body>
+</html>
